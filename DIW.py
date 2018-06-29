@@ -109,22 +109,23 @@ def extractImage(image_to_extract):
     upper_bound = LEFT-1
     lower_bound = RIGHT+1
     try:
-        m,n,c = image_to_extract.shape
+        m,n,_ = image_to_extract.shape
+        c = 3
     except:
-        m,c = image_to_extract.shape
+        m,n = image_to_extract.shape
+        c = 1
     extracted_bits = []
-    if 'c' in locals():
-        for c in range(3):
-            _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:,c],full_matrices=True)
-            middle_point = round(0.5*(upper_bound+lower_bound))
-            middle_value = 0.5*(extracted_s[upper_bound]+extracted_s[lower_bound])
-            #print(extracted_s[upper_bound]-extracted_s[middle_point],extracted_s[middle_point]-extracted_s[lower_bound], end=" ")
-            #plt.figure()
-            #plt.plot(extracted_s[upper_bound-10:lower_bound+10],'m^-')
-
-            if(extracted_s[upper_bound]-extracted_s[middle_point])>(extracted_s[middle_point]-extracted_s[lower_bound]):
-                extracted_bits.append(0)
-            else:
-                extracted_bits.append(1)
+    for i in range(c):
+        try:
+            _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:,i],full_matrices=True)
+        except:
+            _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:],full_matrices=True)
+        middle_point = round(0.5*(upper_bound+lower_bound))
+        middle_value = 0.5*(extracted_s[upper_bound]+extracted_s[lower_bound])
+        #print(extracted_s[upper_bound]-extracted_s[middle_point],extracted_s[middle_point]-extracted_s[lower_bound], end=" ")
+        if (extracted_s[upper_bound]-extracted_s[middle_point]) > (extracted_s[middle_point]-extracted_s[lower_bound]):
+            extracted_bits.append(0)
+        else:
+            extracted_bits.append(1)
     return extracted_bits
 
