@@ -25,6 +25,7 @@ def watermarkImage(image,left,right,embedded_bit):
     ORI_U = []
     ORI_S = []
     ORI_VH = []
+
     try:
         m,n,_ = image.shape
         c = 3
@@ -120,12 +121,83 @@ def extractImage(image_to_extract):
             _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:,i],full_matrices=True)
         except:
             _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:],full_matrices=True)
+        plt.figure()
+        plt.plot(extracted_s[upper_bound-10:lower_bound+10],"ro:")
         middle_point = round(0.5*(upper_bound+lower_bound))
         middle_value = 0.5*(extracted_s[upper_bound]+extracted_s[lower_bound])
-        #print(extracted_s[upper_bound]-extracted_s[middle_point],extracted_s[middle_point]-extracted_s[lower_bound], end=" ")
+        #print(extracted_s[upper_bound]-extracted_s[middle_point],extracted_s[middle_point]-extracted_s[lower_bound])
         if (extracted_s[upper_bound]-extracted_s[middle_point]) > (extracted_s[middle_point]-extracted_s[lower_bound]):
             extracted_bits.append(0)
         else:
             extracted_bits.append(1)
+    return extracted_bits
+
+def watermarkImageBlock(image,left,right,bits_to_embed,block_size):
+    global BLOCK_SIZE
+    BLOCK_SIZE = block_size
+    try:
+        m,n,_ = image.shape
+        c = 3
+    except:
+        m,n = image.shape
+        c = 1
+    
+    WATERMARKING_IMG = np.array(image, dtype=float)
+    
+    bit_n = 0
+    for y in range(0,m,block_size):
+        if y+block_size > m:
+            break
+        for x in range(0,n,block_size):
+            if x+block_size > n:
+                break
+            for i in range(c):
+                try:
+                    WATERMARKING_IMG[y:y+block_size,x:x+block_size,i] = watermarkImage(image[y:y+block_size,x:x+block_size,i],left,right,bits_to_embed[bit_n])
+                except:
+                    WATERMARKING_IMG[y:y+block_size,x:x+block_size] = watermarkImage(image[y:y+block_size,x:x+block_size],left,right,bits_to_embed[bit_n])
+            bit_n = bit_n+1
+            if bit_n >= len(bits_to_embed):
+                break
+        if bit_n >= len(bits_to_embed):
+            break
+            
+    return WATERMARKING_IMG.astype(np.uint8)
+
+def extractImageBlock(image_to_extract,n_bits,block_size):
+
+    try:
+        m,n,_ = image_to_extract.shape
+        c = 3
+    except:
+        m,n = image_to_extract.shape
+        c = 1
+    
+    EXTRACTING_IMG = copy.deepcopy(image_to_extract)
+    
+    extracted_bits = []
+    bit_n = 0     
+    
+    for y in range(0,m,block_size):
+        if y+block_size > m:
+            break
+        for x in range(0,n,block_size):
+            if x+block_size > n:
+                break
+            try:
+                #plt.imshow(image[y:y+block_size,x:x+block_size,:])
+                extracted_bit = extractImage(EXTRACTING_IMG[y:y+block_size,x:x+block_size,:])
+            except:
+                #plt.imshow(image[y:y+block_size,x:x+block_size],cmap='gray')
+                extracted_bit = extractImage(EXTRACTING_IMG[y:y+block_size,x:x+block_size])
+                
+            extracted_bits.append(extracted_bit)
+
+            bit_n = bit_n+1
+            if bit_n >= n_bits:
+                break
+        if bit_n >= n_bits:
+            break
+
     return extracted_bits
 
