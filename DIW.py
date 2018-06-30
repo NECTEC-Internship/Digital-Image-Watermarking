@@ -111,7 +111,7 @@ def extractImage(image_to_extract):
 
     upper_bound = LEFT-1
     lower_bound = RIGHT+1
-
+    plot_style = ["ro:","go:","bo:"]
     try:
         m,n,_ = image_to_extract.shape
         c = 3
@@ -119,13 +119,16 @@ def extractImage(image_to_extract):
         m,n = image_to_extract.shape
         c = 1
     extracted_bits = []
+
+    plt.figure()
+    plt.title("Extracted singular value")
     for i in range(c):
         try:
             _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:,i],full_matrices=True)
         except:
             _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:],full_matrices=True)
-        plt.figure()
-        plt.plot(extracted_s[upper_bound-10:lower_bound+10],"ro:")
+
+        plt.plot(extracted_s[upper_bound-10:lower_bound+10],plot_style[i])
         middle_point = round(0.5*(upper_bound+lower_bound))
         middle_value = 0.5*(extracted_s[upper_bound]+extracted_s[lower_bound])
         #print(extracted_s[upper_bound]-extracted_s[middle_point],extracted_s[middle_point]-extracted_s[lower_bound])
@@ -137,7 +140,6 @@ def extractImage(image_to_extract):
     extracted_bits = mode(extracted_bits, axis=None)
 
     return extracted_bits[0][0]
-
 
 def watermarkImageBlock(image,left,right,bits_to_embed,block_size):
     global BLOCK_SIZE
@@ -219,10 +221,12 @@ def extractImageBlock(image_to_extract):
             break
     print("WATERMARKED_BITS: ",WATERMARK_BITS)
     print("EXTRACTED_BITS: ", extracted_bits)
-    
+
     return ber(WATERMARK_BITS, extracted_bits)
 
 def ber(watermarked_bits, extracted_bits):
+
     m = len(watermarked_bits)
+
     return sum(np.logical_xor(watermarked_bits,extracted_bits))/m
     
