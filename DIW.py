@@ -5,6 +5,7 @@ import haarPsi as hp
 import matplotlib.image as img
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from scipy.stats import mode
 from skimage import color
 from PIL import Image, ImageFilter
 
@@ -19,9 +20,10 @@ normalized_patch = mpatches.Patch(color='magenta', label='Normalized singular va
 def watermarkImage(image,left,right,embedded_bit):
     global LEFT
     global RIGHT
+
     LEFT = left
     RIGHT = right
-
+    
     ORI_U = []
     ORI_S = []
     ORI_VH = []
@@ -109,6 +111,7 @@ def extractImage(image_to_extract):
 
     upper_bound = LEFT-1
     lower_bound = RIGHT+1
+
     try:
         m,n,_ = image_to_extract.shape
         c = 3
@@ -130,11 +133,20 @@ def extractImage(image_to_extract):
             extracted_bits.append(0)
         else:
             extracted_bits.append(1)
-    return extracted_bits
+
+    extracted_bits = mode(extracted_bits, axis=None)
+
+    return extracted_bits[0][0]
+
 
 def watermarkImageBlock(image,left,right,bits_to_embed,block_size):
     global BLOCK_SIZE
+    global N_BITS
+    global WATERMARK_BITS
+
     BLOCK_SIZE = block_size
+    N_BITS = len(bits_to_embed)
+    WATERMARK_BITS = []
     try:
         m,n,_ = image.shape
         c = 3
@@ -156,6 +168,9 @@ def watermarkImageBlock(image,left,right,bits_to_embed,block_size):
                     WATERMARKING_IMG[y:y+block_size,x:x+block_size,i] = watermarkImage(image[y:y+block_size,x:x+block_size,i],left,right,bits_to_embed[bit_n])
                 except:
                     WATERMARKING_IMG[y:y+block_size,x:x+block_size] = watermarkImage(image[y:y+block_size,x:x+block_size],left,right,bits_to_embed[bit_n])
+           
+            WATERMARK_BITS.append(bits_to_embed[bit_n])
+            
             bit_n = bit_n+1
             if bit_n >= len(bits_to_embed):
                 break
@@ -164,7 +179,11 @@ def watermarkImageBlock(image,left,right,bits_to_embed,block_size):
             
     return WATERMARKING_IMG.astype(np.uint8)
 
-def extractImageBlock(image_to_extract,n_bits,block_size):
+def extractImageBlock(image_to_extract):
+    
+    global BLOCK_SIZE
+    global N_BITS
+    global WATERMARK_BITS
 
     try:
         m,n,_ = image_to_extract.shape
@@ -178,26 +197,32 @@ def extractImageBlock(image_to_extract,n_bits,block_size):
     extracted_bits = []
     bit_n = 0     
     
-    for y in range(0,m,block_size):
-        if y+block_size > m:
+    for y in range(0,m,BLOCK_SIZE):
+        if y+BLOCK_SIZE > m:
             break
-        for x in range(0,n,block_size):
-            if x+block_size > n:
+        for x in range(0,n,BLOCK_SIZE):
+            if x+BLOCK_SIZE > n:
                 break
             try:
-                #plt.imshow(image[y:y+block_size,x:x+block_size,:])
-                extracted_bit = extractImage(EXTRACTING_IMG[y:y+block_size,x:x+block_size,:])
+                #plt.imshow(image[y:y+block_size,x:x+BLOCK_SIZE,:])
+                extracted_bit = extractImage(EXTRACTING_IMG[y:y+BLOCK_SIZE,x:x+BLOCK_SIZE,:])
             except:
                 #plt.imshow(image[y:y+block_size,x:x+block_size],cmap='gray')
-                extracted_bit = extractImage(EXTRACTING_IMG[y:y+block_size,x:x+block_size])
+                extracted_bit = extractImage(EXTRACTING_IMG[y:y+BLOCK_SIZE,x:x+BLOCK_SIZE])
                 
             extracted_bits.append(extracted_bit)
 
             bit_n = bit_n+1
-            if bit_n >= n_bits:
+            if bit_n >= N_BITS:
                 break
-        if bit_n >= n_bits:
+        if bit_n >= N_BITS:
             break
+    print("WATERMARKED_BITS: ",WATERMARK_BITS)
+    print("EXTRACTED_BITS: ", extracted_bits)
+    
+    return ber(WATERMARK_BITS, extracted_bits)
 
-    return extracted_bits
-
+def ber(watermarked_bits, extracted_bits):
+    m = len(watermarked_bits)
+    return sum(np.logical_xor(watermarked_bits,extracted_bits))/m
+    
