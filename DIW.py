@@ -1,3 +1,4 @@
+import random
 import cv2
 import copy
 import numpy as np
@@ -120,15 +121,15 @@ def extractImage(image_to_extract):
         c = 1
     extracted_bits = []
 
-    plt.figure()
-    plt.title("Extracted singular value")
+    #plt.figure()
+    #plt.title("Extracted singular value")
     for i in range(c):
         try:
             _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:,i],full_matrices=True)
         except:
             _,extracted_s,_ = np.linalg.svd(image_to_extract[:,:],full_matrices=True)
 
-        plt.plot(extracted_s[upper_bound-10:lower_bound+10],plot_style[i])
+        #plt.plot(extracted_s[upper_bound-10:lower_bound+10],plot_style[i])
         middle_point = round(0.5*(upper_bound+lower_bound))
         middle_value = 0.5*(extracted_s[upper_bound]+extracted_s[lower_bound])
         #print(extracted_s[upper_bound]-extracted_s[middle_point],extracted_s[middle_point]-extracted_s[lower_bound])
@@ -203,13 +204,14 @@ def extractImageBlock(image_to_extract):
         if y+BLOCK_SIZE > m:
             break
         for x in range(0,n,BLOCK_SIZE):
+            #plt.figure()
             if x+BLOCK_SIZE > n:
                 break
             try:
-                #plt.imshow(image[y:y+block_size,x:x+BLOCK_SIZE,:])
+                #plt.imshow(EXTRACTING_IMG[y:y+BLOCK_SIZE,x:x+BLOCK_SIZE,:])
                 extracted_bit = extractImage(EXTRACTING_IMG[y:y+BLOCK_SIZE,x:x+BLOCK_SIZE,:])
             except:
-                #plt.imshow(image[y:y+block_size,x:x+block_size],cmap='gray')
+                #plt.imshow(EXTRACTING_IMG[y:y+BLOCK_SIZE,x:x+BLOCK_SIZE],cmap='gray')
                 extracted_bit = extractImage(EXTRACTING_IMG[y:y+BLOCK_SIZE,x:x+BLOCK_SIZE])
                 
             extracted_bits.append(extracted_bit)
@@ -219,8 +221,9 @@ def extractImageBlock(image_to_extract):
                 break
         if bit_n >= N_BITS:
             break
-    print("WATERMARKED_BITS: ",WATERMARK_BITS)
-    print("EXTRACTED_BITS: ", extracted_bits)
+    print("WATERMARKED_BITS\tEXTRACTED_BITS")
+    for i in range(N_BITS):
+        print("%d\t\t\t%d"%(WATERMARK_BITS[i],extracted_bits[i]))
 
     return ber(WATERMARK_BITS, extracted_bits)
 
@@ -229,4 +232,15 @@ def ber(watermarked_bits, extracted_bits):
     m = len(watermarked_bits)
 
     return sum(np.logical_xor(watermarked_bits,extracted_bits))/m
+
+def experiment(input_image, left, right, block_size, num_bits, attack_func=None):
     
+    experiment_image = copy.deepcopy(input_image)
+
+    bits_to_watermark = [random.randint(0,1) for i in range(num_bits)]
+
+    watermarked_image = watermarkImageBlock(experiment_image,left,right,bits_to_watermark,block_size)
+    
+    attacked_image = attack_func(watermarked_image) if attack_func is not None else watermarked_image
+
+    return  (extractImageBlock(attacked_image), hp.haar_psi(watermarked_image,attacked_image)[0])
