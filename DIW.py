@@ -1,3 +1,4 @@
+import math
 import random
 import cv2
 import copy
@@ -233,14 +234,21 @@ def ber(watermarked_bits, extracted_bits):
 
     return sum(np.logical_xor(watermarked_bits,extracted_bits))/m
 
+def psnr(img1, img2):
+    mse = np.mean( (img1 - img2) ** 2 )
+    if mse == 0:
+        return 100
+    PIXEL_MAX = 255.0
+    return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+
 def experiment(input_image, left, right, block_size, num_bits, attack_func=None):
     
     experiment_image = copy.deepcopy(input_image)
 
     bits_to_watermark = [random.randint(0,1) for i in range(num_bits)]
-
+    
     watermarked_image = watermarkImageBlock(experiment_image,left,right,bits_to_watermark,block_size)
     
     attacked_image = attack_func(watermarked_image) if attack_func is not None else watermarked_image
 
-    return  (extractImageBlock(attacked_image), hp.haar_psi(watermarked_image,attacked_image)[0])
+    return  (extractImageBlock(attacked_image), hp.haar_psi(watermarked_image,attacked_image)[0], psnr(input_image, attacked_image))
