@@ -252,4 +252,4 @@ def experiment(input_image, left, right, block_size, num_bits, attack_func=None)
 
     attacked_image = attack_func(watermarked_image) if attack_func is not None else watermarked_image
 
-    return  extractImageBlock(attacked_image),hp.haar_psi(input_image,attacked_image)[0]
+    return  extractImageBlock(attacked_image),hp.haar_psi(input_image,attacked_image)[0],psnr(input_image,attacked_image)
