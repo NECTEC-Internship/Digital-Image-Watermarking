@@ -222,9 +222,11 @@ def extractImageBlock(image_to_extract):
                 break
         if bit_n >= N_BITS:
             break
+    '''
     print("WATERMARKED_BITS\tEXTRACTED_BITS")
-    for i in range(N_BITS):
+        for i in range(N_BITS):
         print("%d\t\t\t%d"%(WATERMARK_BITS[i],extracted_bits[i]))
+    '''
 
     return ber(WATERMARK_BITS, extracted_bits)
 
@@ -247,7 +249,7 @@ def experiment(input_image, left, right, block_size, num_bits, attack_func=None)
     experiment_image = copy.deepcopy(input_image)
 
     bits_to_watermark = [random.randint(0,1) for i in range(num_bits)]
-    
+    #bits_to_watermark = bits
     watermarked_image = watermarkImageBlock(experiment_image,left,right,bits_to_watermark,block_size)
 
     attacked_image = attack_func(watermarked_image) if attack_func is not None else watermarked_image
